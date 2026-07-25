@@ -1,0 +1,362 @@
+-- Custom Universal Script
+-- Built directly with native Roblox ScreenGui (No external loadstring required)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+local CoreGui = game:GetService("CoreGui")
+
+-- Destroy existing UI if re-executed
+if CoreGui:FindFirstChild("CustomUniversalGui") then
+    CoreGui.CustomUniversalGui:Destroy()
+end
+
+-- ScreenGui Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CustomUniversalGui"
+ScreenGui.ResetOnSpawn = false
+
+local success, _ = pcall(function()
+    ScreenGui.Parent = CoreGui
+end)
+if not success then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Corner Helper
+local function addCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
+end
+
+-- Main Window Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 360, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -210)
+mainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+mainFrame.BorderSizePixel = 0
+addCorner(mainFrame, 10)
+mainFrame.Parent = ScreenGui
+
+-- Header / Title Bar
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 40)
+topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+topBar.BorderSizePixel = 0
+addCorner(topBar, 10)
+topBar.Parent = mainFrame
+
+local topBarFill = Instance.new("Frame")
+topBarFill.Size = UDim2.new(1, 0, 0, 10)
+topBarFill.Position = UDim2.new(0, 0, 1, -10)
+topBarFill.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+topBarFill.BorderSizePixel = 0
+topBarFill.Parent = topBar
+
+-- Title Text
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -50, 1, 0)
+titleLabel.Position = UDim2.new(0, 12, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Custom Universal"
+titleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 18
+titleLabel.Parent = topBar
+
+-- Close / Minimize Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -34, 0, 6)
+closeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+closeBtn.Text = "-"
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 18
+addCorner(closeBtn, 6)
+closeBtn.Parent = topBar
+
+-- Floating Open/Close Button
+local toggleGuiBtn = Instance.new("TextButton")
+toggleGuiBtn.Name = "ToggleMenuButton"
+toggleGuiBtn.Size = UDim2.new(0, 130, 0, 32)
+toggleGuiBtn.Position = UDim2.new(0, 15, 0, 15)
+toggleGuiBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+toggleGuiBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+toggleGuiBtn.Text = "Custom Universal"
+toggleGuiBtn.Font = Enum.Font.SourceSansBold
+toggleGuiBtn.TextSize = 14
+addCorner(toggleGuiBtn, 6)
+toggleGuiBtn.Parent = ScreenGui
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+end)
+
+toggleGuiBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- Dragging Logic
+local dragging, dragInput, dragStart, startPos
+topBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+topBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Scroll Area
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -20, 1, -55)
+scroll.Position = UDim2.new(0, 10, 0, 48)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 5
+scroll.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 85)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 460)
+scroll.Parent = mainFrame
+
+local list = Instance.new("UIListLayout")
+list.Padding = UDim.new(0, 8)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+list.Parent = scroll
+
+-- Row Creation Helper
+local function createInputRow(placeholder, btnText, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -8, 0, 36)
+    row.BackgroundTransparency = 1
+    
+    local input = Instance.new("TextBox")
+    input.Size = UDim2.new(0.65, -4, 1, 0)
+    input.Position = UDim2.new(0, 0, 0, 0)
+    input.BackgroundColor3 = Color3.fromRGB(32, 32, 40)
+    input.TextColor3 = Color3.fromRGB(240, 240, 240)
+    input.PlaceholderText = placeholder
+    input.PlaceholderColor3 = Color3.fromRGB(130, 130, 145)
+    input.Text = ""
+    input.Font = Enum.Font.SourceSans
+    input.TextSize = 14
+    addCorner(input, 6)
+    input.Parent = row
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.35, -4, 1, 0)
+    btn.Position = UDim2.new(0.65, 4, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(48, 48, 62)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = btnText
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 14
+    addCorner(btn, 6)
+    btn.Parent = row
+    
+    btn.MouseButton1Click:Connect(function()
+        callback(input.Text)
+    end)
+    
+    row.Parent = scroll
+    return row
+end
+
+-- Toggle Creation Helper
+local function createToggle(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -8, 0, 36)
+    btn.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
+    btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    btn.Text = text .. ": OFF"
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 14
+    addCorner(btn, 6)
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = text .. ": " .. (state and "ON" or "OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(35, 130, 70) or Color3.fromRGB(38, 38, 48)
+        callback(state)
+    end)
+    
+    btn.Parent = scroll
+    return btn
+end
+
+---------------------------------------------------------
+-- FEATURES
+---------------------------------------------------------
+
+-- WalkSpeed
+createInputRow("WalkSpeed (e.g. 50)", "Set Speed", function(val)
+    local num = tonumber(val)
+    if num and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = num
+    end
+end)
+
+-- JumpPower
+createInputRow("JumpPower (e.g. 100)", "Set Jump", function(val)
+    local num = tonumber(val)
+    if num and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.UseJumpPower = true
+        LocalPlayer.Character.Humanoid.JumpPower = num
+    end
+end)
+
+-- Infinite Jump
+local infJump = false
+createToggle("Infinite Jump", function(state)
+    infJump = state
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if infJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- Fly
+local flying = false
+local flySpeed = 50
+local flyBv, flyBg
+
+createToggle("Fly", function(state)
+    flying = state
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    local hum = char:FindFirstChildOfClass("Humanoid")
+
+    if flying then
+        flyBv = Instance.new("BodyVelocity")
+        flyBv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        flyBv.Velocity = Vector3.zero
+        flyBv.Parent = hrp
+
+        flyBg = Instance.new("BodyGyro")
+        flyBg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        flyBg.P = 9e4
+        flyBg.CFrame = workspace.CurrentCamera.CFrame
+        flyBg.Parent = hrp
+
+        if hum then hum.PlatformStand = true end
+    else
+        if flyBv then flyBv:Destroy() end
+        if flyBg then flyBg:Destroy() end
+        if hum then hum.PlatformStand = false end
+    end
+end)
+
+-- Freeze Myself
+createToggle("Freeze Myself", function(state)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.Anchored = state
+    end
+end)
+
+-- Spinbot
+local spinning = false
+local spinSpeed = 50
+
+createToggle("Spinbot", function(state)
+    spinning = state
+end)
+
+-- Auto Clicker
+local autoClicking = false
+createToggle("Auto Clicker", function(state)
+    autoClicking = state
+    if autoClicking then
+        task.spawn(function()
+            while autoClicking do
+                if mouse1click then
+                    mouse1click()
+                else
+                    VirtualUser:ClickButton1(Vector2.new(0, 0))
+                end
+                task.wait(0.05)
+            end
+        end)
+    end
+end)
+
+-- Play Animation
+createInputRow("Animation ID", "Play Anim", function(val)
+    if val ~= "" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local id = val
+        if not string.match(id, "rbxassetid://") then
+            id = "rbxassetid://" .. id
+        end
+        local anim = Instance.new("Animation")
+        anim.AnimationId = id
+        local track = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
+        track:Play()
+    end
+end)
+
+-- Play Song
+createInputRow("Song Asset ID", "Play Song", function(val)
+    if val ~= "" then
+        local id = val
+        if not string.match(id, "rbxassetid://") then
+            id = "rbxassetid://" .. id
+        end
+        local sound = Instance.new("Sound")
+        sound.SoundId = id
+        sound.Parent = workspace
+        sound.Volume = 1
+        sound:Play()
+    end
+end)
+
+---------------------------------------------------------
+-- RENDER LOOP
+---------------------------------------------------------
+RunService.RenderStepped:Connect(function()
+    if flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and flyBv and flyBg then
+        local cam = workspace.CurrentCamera
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local vel = hum and hum.MoveDirection * flySpeed or Vector3.zero
+
+        flyBg.CFrame = cam.CFrame
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            vel = vel + Vector3.new(0, flySpeed, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            vel = vel + Vector3.new(0, -flySpeed, 0)
+        end
+
+        flyBv.Velocity = vel
+    end
+
+    if spinning and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+    end
+end)
