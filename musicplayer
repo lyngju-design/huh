@@ -1,0 +1,313 @@
+-- Spotify / YouTube Music Style GUI Broadcaster
+-- Native Roblox ScreenGui | Optimized for Delta Executor
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+-- Destroy existing UI if re-executed
+if CoreGui:FindFirstChild("SpotifyMusicPlayer") then
+    CoreGui.SpotifyMusicPlayer:Destroy()
+end
+
+-- ScreenGui Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SpotifyMusicPlayer"
+ScreenGui.ResetOnSpawn = false
+
+local success, _ = pcall(function()
+    ScreenGui.Parent = CoreGui
+end)
+if not success then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Persistent Workspace Sound Object for Global Broadcast
+local broadcastSound = workspace:FindFirstChild("GlobalMusicBroadcaster")
+if not broadcastSound then
+    broadcastSound = Instance.new("Sound")
+    broadcastSound.Name = "GlobalMusicBroadcaster"
+    broadcastSound.Volume = 1
+    broadcastSound.Looped = true
+    broadcastSound.Parent = workspace
+end
+
+-- Saved Tracks Database
+local savedTracks = {
+    {name = "Lo-Fi Chill Beats", artist = "Study Session", id = "rbxassetid://1848354536"},
+    {name = "Synthwave Neon", artist = "Retro Wave", id = "rbxassetid://1837840135"}
+}
+
+-- Spotify / YT Music Theme Palettes
+local theme = {
+    Background = Color3.fromRGB(18, 18, 18),      -- Deep charcoal / Spotify black
+    Surface = Color3.fromRGB(24, 24, 28),         -- Card / panel surface
+    Highlight = Color3.fromRGB(40, 40, 48),       -- Hover / element color
+    GreenAccent = Color3.fromRGB(30, 215, 96),    -- Spotify Green
+    TextWhite = Color3.fromRGB(255, 255, 255),
+    TextGray = Color3.fromRGB(170, 170, 170)
+}
+
+local function addCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
+end
+
+-- Main Window Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 380, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -225)
+mainFrame.BackgroundColor3 = theme.Background
+mainFrame.BorderSizePixel = 0
+addCorner(mainFrame, 12)
+mainFrame.Parent = ScreenGui
+
+-- Top Header Bar
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 45)
+topBar.BackgroundColor3 = theme.Surface
+topBar.BorderSizePixel = 0
+addCorner(topBar, 12)
+topBar.Parent = mainFrame
+
+local topBarFill = Instance.new("Frame")
+topBarFill.Size = UDim2.new(1, 0, 0, 12)
+topBarFill.Position = UDim2.new(0, 0, 1, -12)
+topBarFill.BackgroundColor3 = theme.Surface
+topBarFill.BorderSizePixel = 0
+topBarFill.Parent = topBar
+
+local logoLabel = Instance.new("TextLabel")
+logoLabel.Size = UDim2.new(1, -50, 1, 0)
+logoLabel.Position = UDim2.new(0, 16, 0, 0)
+logoLabel.BackgroundTransparency = 1
+logoLabel.Text = "🎵  Music Streamer"
+logoLabel.TextColor3 = theme.TextWhite
+logoLabel.TextXAlignment = Enum.TextXAlignment.Left
+logoLabel.Font = Enum.Font.GothamBold
+logoLabel.TextSize = 15
+logoLabel.Parent = topBar
+
+-- Minimize/Close Toggle Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -38, 0, 8)
+closeBtn.BackgroundColor3 = theme.Highlight
+closeBtn.TextColor3 = theme.TextWhite
+closeBtn.Text = "-"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+addCorner(closeBtn, 8)
+closeBtn.Parent = topBar
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- Main Scrolling Content Area
+local scroll = Instance.new("ScrollingFrame")
+scroll.Size = UDim2.new(1, -24, 1, -60)
+scroll.Position = UDim2.new(0, 12, 0, 52)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 4
+scroll.ScrollBarImageColor3 = theme.Highlight
+scroll.CanvasSize = UDim2.new(0, 0, 0, 520)
+scroll.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 10)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = scroll
+
+-- NOW PLAYING CARD (Spotify Player Bar Look)
+local playerCard = Instance.new("Frame")
+playerCard.Size = UDim2.new(1, 0, 0, 75)
+playerCard.BackgroundColor3 = theme.Surface
+addCorner(playerCard, 10)
+playerCard.Parent = scroll
+
+local albumArtMock = Instance.new("Frame")
+albumArtMock.Size = UDim2.new(0, 55, 0, 55)
+albumArtMock.Position = UDim2.new(0, 10, 0, 10)
+albumArtMock.BackgroundColor3 = theme.GreenAccent
+addCorner(albumArtMock, 6)
+albumArtMock.Parent = playerCard
+
+local artIcon = Instance.new("TextLabel")
+artIcon.Size = UDim2.new(1, 0, 1, 0)
+artIcon.BackgroundTransparency = 1
+artIcon.Text = "▶"
+artIcon.TextColor3 = theme.Background
+artIcon.Font = Enum.Font.GothamBold
+artIcon.TextSize = 20
+artIcon.Parent = albumArtMock
+
+local trackTitle = Instance.new("TextLabel")
+trackTitle.Size = UDim2.new(1, -85, 0, 20)
+trackTitle.Position = UDim2.new(0, 75, 0, 16)
+trackTitle.BackgroundTransparency = 1
+trackTitle.Text = "No track playing"
+trackTitle.TextColor3 = theme.TextWhite
+trackTitle.TextXAlignment = Enum.TextXAlignment.Left
+trackTitle.Font = Enum.Font.GothamBold
+trackTitle.TextSize = 14
+trackTitle.Parent = playerCard
+
+local trackStatus = Instance.new("TextLabel")
+trackStatus.Size = UDim2.new(1, -85, 0, 18)
+trackStatus.Position = UDim2.new(0, 75, 0, 38)
+trackStatus.BackgroundTransparency = 1
+trackStatus.Text = "Ready to stream globally"
+trackStatus.TextColor3 = theme.TextGray
+trackStatus.TextXAlignment = Enum.TextXAlignment.Left
+trackStatus.Font = Enum.Font.Gotham
+trackStatus.TextSize = 12
+trackStatus.Parent = playerCard
+
+-- ADD TRACK INPUT SECTION
+local inputHeader = Instance.new("TextLabel")
+inputHeader.Size = UDim2.new(1, 0, 0, 22)
+inputHeader.BackgroundTransparency = 1
+inputHeader.Text = "ADD NEW TRACK"
+inputHeader.TextColor3 = theme.TextGray
+inputHeader.TextXAlignment = Enum.TextXAlignment.Left
+inputHeader.Font = Enum.Font.GothamBold
+inputHeader.TextSize = 11
+inputHeader.Parent = scroll
+
+local nameInput = Instance.new("TextBox")
+nameInput.Size = UDim2.new(1, 0, 0, 38)
+nameInput.BackgroundColor3 = theme.Surface
+nameInput.TextColor3 = theme.TextWhite
+nameInput.PlaceholderText = "Song Title"
+nameInput.PlaceholderColor3 = theme.TextGray
+nameInput.Text = ""
+nameInput.Font = Enum.Font.Gotham
+nameInput.TextSize = 13
+addCorner(nameInput, 8)
+nameInput.Parent = scroll
+
+local idInput = Instance.new("TextBox")
+idInput.Size = UDim2.new(1, 0, 0, 38)
+idInput.BackgroundColor3 = theme.Surface
+idInput.TextColor3 = theme.TextWhite
+idInput.PlaceholderText = "Roblox Audio Asset ID (e.g. 1848354536)"
+idInput.PlaceholderColor3 = theme.TextGray
+idInput.Text = ""
+idInput.Font = Enum.Font.Gotham
+idInput.TextSize = 13
+addCorner(idInput, 8)
+idInput.Parent = scroll
+
+local saveBtn = Instance.new("TextButton")
+saveBtn.Size = UDim2.new(1, 0, 0, 38)
+saveBtn.BackgroundColor3 = theme.GreenAccent
+saveBtn.TextColor3 = theme.Background
+saveBtn.Text = "Save to Library"
+saveBtn.Font = Enum.Font.GothamBold
+saveBtn.TextSize = 13
+addCorner(saveBtn, 8)
+saveBtn.Parent = scroll
+
+local stopBtn = Instance.new("TextButton")
+stopBtn.Size = UDim2.new(1, 0, 0, 36)
+stopBtn.BackgroundColor3 = theme.Highlight
+stopBtn.TextColor3 = theme.TextWhite
+stopBtn.Text = "Stop Current Broadcast"
+stopBtn.Font = Enum.Font.GothamBold
+stopBtn.TextSize = 12
+addCorner(stopBtn, 8)
+stopBtn.Parent = scroll
+
+stopBtn.MouseButton1Click:Connect(function()
+    broadcastSound:Stop()
+    trackTitle.Text = "No track playing"
+    trackStatus.Text = "Stopped"
+end)
+
+-- LIBRARY HEADER
+local libraryHeader = Instance.new("TextLabel")
+libraryHeader.Size = UDim2.new(1, 0, 0, 24)
+libraryHeader.BackgroundTransparency = 1
+libraryHeader.Text = "PLAYLIST LIBRARY"
+libraryHeader.TextColor3 = theme.TextGray
+libraryHeader.TextXAlignment = Enum.TextXAlignment.Left
+libraryHeader.Font = Enum.Font.GothamBold
+libraryHeader.TextSize = 11
+libraryHeader.Parent = scroll
+
+-- DYNAMIC TRACKS LIST CONTAINER
+local tracksContainer = Instance.new("Frame")
+tracksContainer.Size = UDim2.new(1, 0, 0, 180)
+tracksContainer.BackgroundTransparency = 1
+tracksContainer.Parent = scroll
+
+local tracksLayout = Instance.new("UIListLayout")
+tracksLayout.Padding = UDim.new(0, 6)
+tracksLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tracksLayout.Parent = tracksContainer
+
+-- Functions
+local function playTrack(name, assetId)
+    local id = tostring(assetId)
+    if not string.match(id, "rbxassetid://") then
+        id = "rbxassetid://" .. id
+    end
+    
+    broadcastSound.SoundId = id
+    broadcastSound:Play()
+    
+    trackTitle.Text = name
+    trackStatus.Text = "Broadcasting to server..."
+end
+
+local function renderTracksList()
+    for _, child in ipairs(tracksContainer:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    for _, track in ipairs(savedTracks) do
+        local trackBtn = Instance.new("TextButton")
+        trackBtn.Size = UDim2.new(1, 0, 0, 42)
+        trackBtn.BackgroundColor3 = theme.Surface
+        trackBtn.TextColor3 = theme.TextWhite
+        trackBtn.Text = "   ▶  " .. track.name
+        trackBtn.Font = Enum.Font.GothamBold
+        trackBtn.TextSize = 13
+        trackBtn.TextXAlignment = Enum.TextXAlignment.Left
+        addCorner(trackBtn, 8)
+        
+        -- Hover effects
+        trackBtn.MouseEnter:Connect(function()
+            trackBtn.BackgroundColor3 = theme.Highlight
+        end)
+        trackBtn.MouseLeave:Connect(function()
+            trackBtn.BackgroundColor3 = theme.Surface
+        end)
+        
+        trackBtn.MouseButton1Click:Connect(function()
+            playTrack(track.name, track.id)
+        end)
+        
+        trackBtn.Parent = tracksContainer
+    end
+end
+
+saveBtn.MouseButton1Click:Connect(function()
+    local nameText = nameInput.Text
+    local idText = idInput.Text
+    
+    if nameText ~= "" and idText ~= "" then
+        table.insert(savedTracks, {name = nameText, id = idText})
+        nameInput.Text = ""
+        idInput.Text = ""
+        renderTracksList()
+    end
+end)
+
+-- Initial Render
+renderTracksList()
