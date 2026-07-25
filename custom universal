@@ -1,4 +1,4 @@
--- Custom Universal Master Toolkit (All Features Included)
+-- Custom Universal Master Toolkit (All Features + Fake Lag)
 -- Native Roblox ScreenGui | Optimized for Delta Executor
 
 local Players = game:GetService("Players")
@@ -162,7 +162,7 @@ scroll.Position = UDim2.new(0, 10, 0, 48)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 5
 scroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 950)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 1050)
 scroll.Parent = mainFrame
 
 local list = Instance.new("UIListLayout")
@@ -258,7 +258,7 @@ local function createToggle(text, callback)
 end
 
 ---------------------------------------------------------
--- ALL FEATURES (Core + Fun/Showcase)
+-- ALL FEATURES (Core + Showcase + Fake Lag)
 ---------------------------------------------------------
 
 -- 1. Performance Widget (FPS & Ping)
@@ -411,7 +411,7 @@ createToggle("Fly", function(state)
     end
 end)
 
--- 8. Freeze Myself
+-- 8. Freeze Myself (Fully Anchored)
 createToggle("Freeze Myself", function(state)
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -419,14 +419,41 @@ createToggle("Freeze Myself", function(state)
     end
 end)
 
--- 9. Spinbot
+-- 9. Fake Lag (Client Move - Walk around while frozen to server)
+local fakeLagActive = false
+local originalParent = nil
+
+createToggle("Fake Lag (Client Move)", function(state)
+    fakeLagActive = state
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    if fakeLagActive then
+        originalParent = char.Parent
+        char.Parent = nil
+        char:PivotTo(char:GetPivot())
+        char.Parent = originalParent
+        
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+            end
+        end
+        sendNotification("Fake Lag Enabled (Client-side only)")
+    else
+        sendNotification("Fake Lag Disabled (Reconnected)")
+    end
+end)
+
+-- 10. Spinbot
 local spinning = false
 local spinSpeed = 50
 createToggle("Spinbot", function(state)
     spinning = state
 end)
 
--- 10. Auto Clicker
+-- 11. Auto Clicker
 local autoClicking = false
 createToggle("Auto Clicker", function(state)
     autoClicking = state
@@ -444,7 +471,7 @@ createToggle("Auto Clicker", function(state)
     end
 end)
 
--- 11. Waypoint Teleporter
+-- 12. Waypoint Teleporter
 local savedWaypoint = nil
 local waypointFrame = Instance.new("Frame")
 waypointFrame.Size = UDim2.new(1, -8, 0, 36)
@@ -490,7 +517,7 @@ tpWpBtn.MouseButton1Click:Connect(function()
 end)
 waypointFrame.Parent = scroll
 
--- 12. Client-Side Time Changer (Day / Night)
+-- 13. Client-Side Time Changer (Day / Night)
 local timeFrame = Instance.new("Frame")
 timeFrame.Size = UDim2.new(1, -8, 0, 36)
 timeFrame.BackgroundTransparency = 1
@@ -527,7 +554,7 @@ nightBtn.MouseButton1Click:Connect(function()
 end)
 timeFrame.Parent = scroll
 
--- 13. Character Sparkle Trail Toggle
+-- 14. Character Sparkle Trail Toggle
 local sparkleEmitter = nil
 local sparkleBtn = Instance.new("TextButton")
 sparkleBtn.Size = UDim2.new(1, -8, 0, 36)
@@ -561,7 +588,7 @@ sparkleBtn.MouseButton1Click:Connect(function()
 end)
 sparkleBtn.Parent = scroll
 
--- 14. Play Animation
+-- 15. Play Animation
 createInputRow("Animation ID", "Play Anim", function(val)
     if val ~= "" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         local id = val
@@ -574,7 +601,7 @@ createInputRow("Animation ID", "Play Anim", function(val)
     end
 end)
 
--- 15. Play Song
+-- 16. Play Song
 createInputRow("Song Asset ID", "Play Song", function(val)
     if val ~= "" then
         local id = val
