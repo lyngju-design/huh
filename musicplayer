@@ -1,8 +1,9 @@
--- Spotify / YouTube Music Style GUI Broadcaster
+-- Spotify / YouTube Music Style GUI Broadcaster (Draggable + Toggle Button)
 -- Native Roblox ScreenGui | Optimized for Delta Executor
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 -- Destroy existing UI if re-executed
@@ -34,16 +35,16 @@ end
 
 -- Saved Tracks Database
 local savedTracks = {
-    {name = "Lo-Fi Chill Beats", artist = "Study Session", id = "rbxassetid://1848354536"},
-    {name = "Synthwave Neon", artist = "Retro Wave", id = "rbxassetid://1837840135"}
+    {name = "Lo-Fi Chill Beats", id = "rbxassetid://1848354536"},
+    {name = "Synthwave Neon", id = "rbxassetid://1837840135"}
 }
 
 -- Spotify / YT Music Theme Palettes
 local theme = {
-    Background = Color3.fromRGB(18, 18, 18),      -- Deep charcoal / Spotify black
-    Surface = Color3.fromRGB(24, 24, 28),         -- Card / panel surface
-    Highlight = Color3.fromRGB(40, 40, 48),       -- Hover / element color
-    GreenAccent = Color3.fromRGB(30, 215, 96),    -- Spotify Green
+    Background = Color3.fromRGB(18, 18, 18),
+    Surface = Color3.fromRGB(24, 24, 28),
+    Highlight = Color3.fromRGB(40, 40, 48),
+    GreenAccent = Color3.fromRGB(30, 215, 96),
     TextWhite = Color3.fromRGB(255, 255, 255),
     TextGray = Color3.fromRGB(170, 170, 170)
 }
@@ -53,6 +54,19 @@ local function addCorner(parent, radius)
     corner.CornerRadius = UDim.new(0, radius or 8)
     corner.Parent = parent
 end
+
+-- Floating Toggle Button (Always visible to open/close the music player)
+local toggleGuiBtn = Instance.new("TextButton")
+toggleGuiBtn.Name = "ToggleMenuButton"
+toggleGuiBtn.Size = UDim2.new(0, 130, 0, 36)
+toggleGuiBtn.Position = UDim2.new(0, 15, 0, 15)
+toggleGuiBtn.BackgroundColor3 = theme.Surface
+toggleGuiBtn.TextColor3 = theme.GreenAccent
+toggleGuiBtn.Text = "🎵 Music UI"
+toggleGuiBtn.Font = Enum.Font.GothamBold
+toggleGuiBtn.TextSize = 13
+addCorner(toggleGuiBtn, 8)
+toggleGuiBtn.Parent = ScreenGui
 
 -- Main Window Frame
 local mainFrame = Instance.new("Frame")
@@ -64,7 +78,12 @@ mainFrame.BorderSizePixel = 0
 addCorner(mainFrame, 12)
 mainFrame.Parent = ScreenGui
 
--- Top Header Bar
+-- Toggle UI Visibility on Button Click
+toggleGuiBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- Top Header Bar (Draggable Area)
 local topBar = Instance.new("Frame")
 topBar.Size = UDim2.new(1, 0, 0, 45)
 topBar.BackgroundColor3 = theme.Surface
@@ -90,7 +109,7 @@ logoLabel.Font = Enum.Font.GothamBold
 logoLabel.TextSize = 15
 logoLabel.Parent = topBar
 
--- Minimize/Close Toggle Button
+-- Minimize / Close Button inside Window
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(1, -38, 0, 8)
@@ -103,7 +122,35 @@ addCorner(closeBtn, 8)
 closeBtn.Parent = topBar
 
 closeBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+    mainFrame.Visible = false
+end)
+
+-- DRAGGING LOGIC (Works for both Mouse and Mobile Touch)
+local dragging, dragInput, dragStart, startPos
+topBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+topBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
 end)
 
 -- Main Scrolling Content Area
@@ -121,7 +168,7 @@ listLayout.Padding = UDim.new(0, 10)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = scroll
 
--- NOW PLAYING CARD (Spotify Player Bar Look)
+-- NOW PLAYING CARD
 local playerCard = Instance.new("Frame")
 playerCard.Size = UDim2.new(1, 0, 0, 75)
 playerCard.BackgroundColor3 = theme.Surface
@@ -281,7 +328,6 @@ local function renderTracksList()
         trackBtn.TextXAlignment = Enum.TextXAlignment.Left
         addCorner(trackBtn, 8)
         
-        -- Hover effects
         trackBtn.MouseEnter:Connect(function()
             trackBtn.BackgroundColor3 = theme.Highlight
         end)
