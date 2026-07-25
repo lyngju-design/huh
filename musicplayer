@@ -1,29 +1,30 @@
--- Spotify / YouTube Music Style GUI Broadcaster (Draggable + Toggle Button)
--- Native Roblox ScreenGui | Optimized for Delta Executor
+-- Modern Audio Broadcaster (Draggable + Toggle + Persistence + Auto-Scaling)
+-- Optimized for Executor Environments
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
--- Destroy existing UI if re-executed
-if CoreGui:FindFirstChild("SpotifyMusicPlayer") then
-    CoreGui.SpotifyMusicPlayer:Destroy()
+local UI_NAME = "ModernMusicStreamer"
+local SAVE_FILE = "MusicPlayer_SavedTracks.json"
+
+-- Clean up existing UI
+if CoreGui:FindFirstChild(UI_NAME) then
+    CoreGui[UI_NAME]:Destroy()
 end
 
--- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SpotifyMusicPlayer"
+ScreenGui.Name = UI_NAME
 ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local success, _ = pcall(function()
-    ScreenGui.Parent = CoreGui
-end)
-if not success then
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-end
+local success = pcall(function() ScreenGui.Parent = CoreGui end)
+if not success then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- Persistent Workspace Sound Object for Global Broadcast
+-- Persistent Global Broadcaster Sound
 local broadcastSound = workspace:FindFirstChild("GlobalMusicBroadcaster")
 if not broadcastSound then
     broadcastSound = Instance.new("Sound")
@@ -33,119 +34,158 @@ if not broadcastSound then
     broadcastSound.Parent = workspace
 end
 
--- Saved Tracks Database
-local savedTracks = {
-    {name = "Lo-Fi Chill Beats", id = "rbxassetid://1848354536"},
-    {name = "Synthwave Neon", id = "rbxassetid://1837840135"}
-}
+-- ==========================================
+-- FILE SAVING & LOADING LOGIC
+-- ==========================================
+local savedTracks = {}
 
--- Spotify / YT Music Theme Palettes
-local theme = {
-    Background = Color3.fromRGB(18, 18, 18),
-    Surface = Color3.fromRGB(24, 24, 28),
-    Highlight = Color3.fromRGB(40, 40, 48),
-    GreenAccent = Color3.fromRGB(30, 215, 96),
-    TextWhite = Color3.fromRGB(255, 255, 255),
-    TextGray = Color3.fromRGB(170, 170, 170)
-}
-
-local function addCorner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
-    corner.Parent = parent
+local function loadTracks()
+    if isfile and readfile and isfile(SAVE_FILE) then
+        local readSuccess, data = pcall(function()
+            return HttpService:JSONDecode(readfile(SAVE_FILE))
+        end)
+        if readSuccess and type(data) == "table" then
+            return data
+        end
+    end
+    -- Default tracks if no save file exists
+    return {
+        {name = "Lo-Fi Chill Beats", id = "1848354536"},
+        {name = "Synthwave Neon", id = "1837840135"}
+    }
 end
 
--- Floating Toggle Button (Always visible to open/close the music player)
-local toggleGuiBtn = Instance.new("TextButton")
-toggleGuiBtn.Name = "ToggleMenuButton"
-toggleGuiBtn.Size = UDim2.new(0, 130, 0, 36)
-toggleGuiBtn.Position = UDim2.new(0, 15, 0, 15)
-toggleGuiBtn.BackgroundColor3 = theme.Surface
-toggleGuiBtn.TextColor3 = theme.GreenAccent
-toggleGuiBtn.Text = "🎵 Music UI"
-toggleGuiBtn.Font = Enum.Font.GothamBold
-toggleGuiBtn.TextSize = 13
-addCorner(toggleGuiBtn, 8)
-toggleGuiBtn.Parent = ScreenGui
+local function saveTracksToFile()
+    if writefile then
+        local writeSuccess, data = pcall(function()
+            return HttpService:JSONEncode(savedTracks)
+        end)
+        if writeSuccess then
+            writefile(SAVE_FILE, data)
+        end
+    end
+end
 
--- Main Window Frame
+savedTracks = loadTracks()
+
+-- ==========================================
+-- THEME & UTILITIES
+-- ==========================================
+local theme = {
+    Background = Color3.fromRGB(15, 15, 18),
+    Surface = Color3.fromRGB(24, 24, 28),
+    SurfaceLight = Color3.fromRGB(34, 34, 38),
+    Accent = Color3.fromRGB(30, 215, 96), -- Spotify Green
+    Danger = Color3.fromRGB(215, 50, 50),
+    Text = Color3.fromRGB(250, 250, 250),
+    TextMuted = Color3.fromRGB(150, 150, 150)
+}
+
+local function applyCorner(obj, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = obj
+end
+
+local function applyStroke(obj, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color
+    stroke.Thickness = thickness or 1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = obj
+end
+
+local function createTween(obj, properties, duration)
+    return TweenService:Create(obj, TweenInfo.new(duration or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), properties)
+end
+
+-- ==========================================
+-- UI CONSTRUCTION
+-- ==========================================
+
+-- Floating Toggle Button
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 45, 0, 45)
+toggleBtn.Position = UDim2.new(0, 20, 0, 20)
+toggleBtn.BackgroundColor3 = theme.Surface
+toggleBtn.Text = "🎵"
+toggleBtn.TextSize = 20
+applyCorner(toggleBtn, 22.5)
+applyStroke(toggleBtn, theme.SurfaceLight, 1)
+toggleBtn.Parent = ScreenGui
+
+-- Main Container
 local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 380, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -190, 0.5, -225)
+mainFrame.Size = UDim2.new(0, 360, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -250)
 mainFrame.BackgroundColor3 = theme.Background
-mainFrame.BorderSizePixel = 0
-addCorner(mainFrame, 12)
+applyCorner(mainFrame, 12)
+applyStroke(mainFrame, theme.SurfaceLight, 1)
 mainFrame.Parent = ScreenGui
 
--- Toggle UI Visibility on Button Click
-toggleGuiBtn.MouseButton1Click:Connect(function()
+toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Top Header Bar (Draggable Area)
-local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1, 0, 0, 45)
-topBar.BackgroundColor3 = theme.Surface
-topBar.BorderSizePixel = 0
-addCorner(topBar, 12)
-topBar.Parent = mainFrame
+-- Header (Draggable)
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 50)
+header.BackgroundColor3 = theme.Surface
+header.BorderSizePixel = 0
+applyCorner(header, 12)
+header.Parent = mainFrame
 
-local topBarFill = Instance.new("Frame")
-topBarFill.Size = UDim2.new(1, 0, 0, 12)
-topBarFill.Position = UDim2.new(0, 0, 1, -12)
-topBarFill.BackgroundColor3 = theme.Surface
-topBarFill.BorderSizePixel = 0
-topBarFill.Parent = topBar
+local headerBottomSquare = Instance.new("Frame")
+headerBottomSquare.Size = UDim2.new(1, 0, 0, 12)
+headerBottomSquare.Position = UDim2.new(0, 0, 1, -12)
+headerBottomSquare.BackgroundColor3 = theme.Surface
+headerBottomSquare.BorderSizePixel = 0
+headerBottomSquare.Parent = header
 
-local logoLabel = Instance.new("TextLabel")
-logoLabel.Size = UDim2.new(1, -50, 1, 0)
-logoLabel.Position = UDim2.new(0, 16, 0, 0)
-logoLabel.BackgroundTransparency = 1
-logoLabel.Text = "🎵  Music Streamer"
-logoLabel.TextColor3 = theme.TextWhite
-logoLabel.TextXAlignment = Enum.TextXAlignment.Left
-logoLabel.Font = Enum.Font.GothamBold
-logoLabel.TextSize = 15
-logoLabel.Parent = topBar
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 20, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Studio Broadcaster"
+title.TextColor3 = theme.Text
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
 
--- Minimize / Close Button inside Window
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -38, 0, 8)
-closeBtn.BackgroundColor3 = theme.Highlight
-closeBtn.TextColor3 = theme.TextWhite
-closeBtn.Text = "-"
+closeBtn.Position = UDim2.new(1, -40, 0, 10)
+closeBtn.BackgroundColor3 = theme.SurfaceLight
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = theme.Text
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 16
-addCorner(closeBtn, 8)
-closeBtn.Parent = topBar
+closeBtn.TextSize = 14
+applyCorner(closeBtn, 6)
+closeBtn.Parent = header
 
 closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- DRAGGING LOGIC (Works for both Mouse and Mobile Touch)
+closeBtn.MouseEnter:Connect(function() createTween(closeBtn, {BackgroundColor3 = theme.Danger}):Play() end)
+closeBtn.MouseLeave:Connect(function() createTween(closeBtn, {BackgroundColor3 = theme.SurfaceLight}):Play() end)
+
+-- Smooth Dragging Logic
 local dragging, dragInput, dragStart, startPos
-topBar.InputBegan:Connect(function(input)
+header.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = mainFrame.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
-
-topBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
+header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
@@ -153,120 +193,168 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Main Scrolling Content Area
+-- Scrolling Content Area (Fixed Auto-Scaling)
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -24, 1, -60)
-scroll.Position = UDim2.new(0, 12, 0, 52)
+scroll.Size = UDim2.new(1, 0, 1, -50)
+scroll.Position = UDim2.new(0, 0, 0, 50)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 4
-scroll.ScrollBarImageColor3 = theme.Highlight
-scroll.CanvasSize = UDim2.new(0, 0, 0, 520)
+scroll.ScrollBarImageColor3 = theme.SurfaceLight
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- NATIVE ROBLOX AUTO-SCALING
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 scroll.Parent = mainFrame
 
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 10)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Parent = scroll
+local scrollPadding = Instance.new("UIPadding")
+scrollPadding.PaddingTop = UDim.new(0, 15)
+scrollPadding.PaddingBottom = UDim.new(0, 15)
+scrollPadding.PaddingLeft = UDim.new(0, 15)
+scrollPadding.PaddingRight = UDim.new(0, 15)
+scrollPadding.Parent = scroll
 
--- NOW PLAYING CARD
+local scrollLayout = Instance.new("UIListLayout")
+scrollLayout.Padding = UDim.new(0, 12)
+scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+scrollLayout.Parent = scroll
+
+-- Now Playing Card
 local playerCard = Instance.new("Frame")
-playerCard.Size = UDim2.new(1, 0, 0, 75)
+playerCard.Size = UDim2.new(1, 0, 0, 70)
 playerCard.BackgroundColor3 = theme.Surface
-addCorner(playerCard, 10)
+applyCorner(playerCard, 8)
 playerCard.Parent = scroll
 
-local albumArtMock = Instance.new("Frame")
-albumArtMock.Size = UDim2.new(0, 55, 0, 55)
-albumArtMock.Position = UDim2.new(0, 10, 0, 10)
-albumArtMock.BackgroundColor3 = theme.GreenAccent
-addCorner(albumArtMock, 6)
-albumArtMock.Parent = playerCard
-
 local artIcon = Instance.new("TextLabel")
-artIcon.Size = UDim2.new(1, 0, 1, 0)
-artIcon.BackgroundTransparency = 1
+artIcon.Size = UDim2.new(0, 46, 0, 46)
+artIcon.Position = UDim2.new(0, 12, 0, 12)
+artIcon.BackgroundColor3 = theme.Accent
 artIcon.Text = "▶"
 artIcon.TextColor3 = theme.Background
 artIcon.Font = Enum.Font.GothamBold
-artIcon.TextSize = 20
-artIcon.Parent = albumArtMock
+artIcon.TextSize = 18
+applyCorner(artIcon, 6)
+artIcon.Parent = playerCard
 
 local trackTitle = Instance.new("TextLabel")
 trackTitle.Size = UDim2.new(1, -85, 0, 20)
-trackTitle.Position = UDim2.new(0, 75, 0, 16)
+trackTitle.Position = UDim2.new(0, 70, 0, 15)
 trackTitle.BackgroundTransparency = 1
 trackTitle.Text = "No track playing"
-trackTitle.TextColor3 = theme.TextWhite
-trackTitle.TextXAlignment = Enum.TextXAlignment.Left
+trackTitle.TextColor3 = theme.Text
 trackTitle.Font = Enum.Font.GothamBold
 trackTitle.TextSize = 14
+trackTitle.TextXAlignment = Enum.TextXAlignment.Left
 trackTitle.Parent = playerCard
 
 local trackStatus = Instance.new("TextLabel")
-trackStatus.Size = UDim2.new(1, -85, 0, 18)
-trackStatus.Position = UDim2.new(0, 75, 0, 38)
+trackStatus.Size = UDim2.new(1, -85, 0, 15)
+trackStatus.Position = UDim2.new(0, 70, 0, 38)
 trackStatus.BackgroundTransparency = 1
-trackStatus.Text = "Ready to stream globally"
-trackStatus.TextColor3 = theme.TextGray
-trackStatus.TextXAlignment = Enum.TextXAlignment.Left
+trackStatus.Text = "Ready to broadcast"
+trackStatus.TextColor3 = theme.TextMuted
 trackStatus.Font = Enum.Font.Gotham
 trackStatus.TextSize = 12
+trackStatus.TextXAlignment = Enum.TextXAlignment.Left
 trackStatus.Parent = playerCard
 
--- ADD TRACK INPUT SECTION
-local inputHeader = Instance.new("TextLabel")
-inputHeader.Size = UDim2.new(1, 0, 0, 22)
-inputHeader.BackgroundTransparency = 1
-inputHeader.Text = "ADD NEW TRACK"
-inputHeader.TextColor3 = theme.TextGray
-inputHeader.TextXAlignment = Enum.TextXAlignment.Left
-inputHeader.Font = Enum.Font.GothamBold
-inputHeader.TextSize = 11
-inputHeader.Parent = scroll
+-- Input Section
+local function createInput(placeholder)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, 0, 0, 40)
+    box.BackgroundColor3 = theme.Surface
+    box.TextColor3 = theme.Text
+    box.PlaceholderText = placeholder
+    box.PlaceholderColor3 = theme.TextMuted
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 13
+    box.Text = ""
+    applyCorner(box, 6)
+    applyStroke(box, theme.SurfaceLight, 1)
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.Parent = box
+    
+    box.Parent = scroll
+    return box
+end
 
-local nameInput = Instance.new("TextBox")
-nameInput.Size = UDim2.new(1, 0, 0, 38)
-nameInput.BackgroundColor3 = theme.Surface
-nameInput.TextColor3 = theme.TextWhite
-nameInput.PlaceholderText = "Song Title"
-nameInput.PlaceholderColor3 = theme.TextGray
-nameInput.Text = ""
-nameInput.Font = Enum.Font.Gotham
-nameInput.TextSize = 13
-addCorner(nameInput, 8)
-nameInput.Parent = scroll
+local nameInput = createInput("Track Name (e.g., Boss Music)")
+local idInput = createInput("Asset ID (e.g., 1848354536)")
 
-local idInput = Instance.new("TextBox")
-idInput.Size = UDim2.new(1, 0, 0, 38)
-idInput.BackgroundColor3 = theme.Surface
-idInput.TextColor3 = theme.TextWhite
-idInput.PlaceholderText = "Roblox Audio Asset ID (e.g. 1848354536)"
-idInput.PlaceholderColor3 = theme.TextGray
-idInput.Text = ""
-idInput.Font = Enum.Font.Gotham
-idInput.TextSize = 13
-addCorner(idInput, 8)
-idInput.Parent = scroll
+local controlsLayout = Instance.new("Frame")
+controlsLayout.Size = UDim2.new(1, 0, 0, 40)
+controlsLayout.BackgroundTransparency = 1
+controlsLayout.Parent = scroll
 
 local saveBtn = Instance.new("TextButton")
-saveBtn.Size = UDim2.new(1, 0, 0, 38)
-saveBtn.BackgroundColor3 = theme.GreenAccent
+saveBtn.Size = UDim2.new(0.68, -5, 1, 0)
+saveBtn.BackgroundColor3 = theme.Accent
+saveBtn.Text = "Add Track"
 saveBtn.TextColor3 = theme.Background
-saveBtn.Text = "Save to Library"
 saveBtn.Font = Enum.Font.GothamBold
 saveBtn.TextSize = 13
-addCorner(saveBtn, 8)
-saveBtn.Parent = scroll
+applyCorner(saveBtn, 6)
+saveBtn.Parent = controlsLayout
 
 local stopBtn = Instance.new("TextButton")
-stopBtn.Size = UDim2.new(1, 0, 0, 36)
-stopBtn.BackgroundColor3 = theme.Highlight
-stopBtn.TextColor3 = theme.TextWhite
-stopBtn.Text = "Stop Current Broadcast"
+stopBtn.Size = UDim2.new(0.32, -5, 1, 0)
+stopBtn.Position = UDim2.new(0.68, 10, 0, 0)
+stopBtn.BackgroundColor3 = theme.SurfaceLight
+stopBtn.Text = "Stop"
+stopBtn.TextColor3 = theme.Text
 stopBtn.Font = Enum.Font.GothamBold
-stopBtn.TextSize = 12
-addCorner(stopBtn, 8)
-stopBtn.Parent = scroll
+stopBtn.TextSize = 13
+applyCorner(stopBtn, 6)
+stopBtn.Parent = controlsLayout
+
+saveBtn.MouseEnter:Connect(function() createTween(saveBtn, {BackgroundColor3 = Color3.fromRGB(40, 235, 110)}):Play() end)
+saveBtn.MouseLeave:Connect(function() createTween(saveBtn, {BackgroundColor3 = theme.Accent}):Play() end)
+stopBtn.MouseEnter:Connect(function() createTween(stopBtn, {BackgroundColor3 = theme.Danger, TextColor3 = theme.Text}):Play() end)
+stopBtn.MouseLeave:Connect(function() createTween(stopBtn, {BackgroundColor3 = theme.SurfaceLight, TextColor3 = theme.Text}):Play() end)
+
+local separator = Instance.new("Frame")
+separator.Size = UDim2.new(1, 0, 0, 1)
+separator.BackgroundColor3 = theme.SurfaceLight
+separator.BorderSizePixel = 0
+separator.Parent = scroll
+
+-- Tracks Container (Auto-sizing for Library)
+local libraryHeader = Instance.new("TextLabel")
+libraryHeader.Size = UDim2.new(1, 0, 0, 20)
+libraryHeader.BackgroundTransparency = 1
+libraryHeader.Text = "YOUR LIBRARY"
+libraryHeader.TextColor3 = theme.TextMuted
+libraryHeader.Font = Enum.Font.GothamBold
+libraryHeader.TextSize = 11
+libraryHeader.TextXAlignment = Enum.TextXAlignment.Left
+libraryHeader.Parent = scroll
+
+local tracksContainer = Instance.new("Frame")
+tracksContainer.Size = UDim2.new(1, 0, 0, 0)
+tracksContainer.AutomaticSize = Enum.AutomaticSize.Y -- Scales perfectly with children
+tracksContainer.BackgroundTransparency = 1
+tracksContainer.Parent = scroll
+
+local tracksLayout = Instance.new("UIListLayout")
+tracksLayout.Padding = UDim.new(0, 8)
+tracksLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tracksLayout.Parent = tracksContainer
+
+-- ==========================================
+-- LOGIC & EVENTS
+-- ==========================================
+
+local function playTrack(name, assetId)
+    local id = tostring(assetId)
+    -- Strip everything except numbers to ensure clean formatting
+    local rawId = string.match(id, "%d+") 
+    if rawId then
+        broadcastSound.SoundId = "rbxassetid://" .. rawId
+        broadcastSound:Play()
+        trackTitle.Text = name
+        trackStatus.Text = "Broadcasting..."
+    end
+end
 
 stopBtn.MouseButton1Click:Connect(function()
     broadcastSound:Stop()
@@ -274,86 +362,69 @@ stopBtn.MouseButton1Click:Connect(function()
     trackStatus.Text = "Stopped"
 end)
 
--- LIBRARY HEADER
-local libraryHeader = Instance.new("TextLabel")
-libraryHeader.Size = UDim2.new(1, 0, 0, 24)
-libraryHeader.BackgroundTransparency = 1
-libraryHeader.Text = "PLAYLIST LIBRARY"
-libraryHeader.TextColor3 = theme.TextGray
-libraryHeader.TextXAlignment = Enum.TextXAlignment.Left
-libraryHeader.Font = Enum.Font.GothamBold
-libraryHeader.TextSize = 11
-libraryHeader.Parent = scroll
-
--- DYNAMIC TRACKS LIST CONTAINER
-local tracksContainer = Instance.new("Frame")
-tracksContainer.Size = UDim2.new(1, 0, 0, 180)
-tracksContainer.BackgroundTransparency = 1
-tracksContainer.Parent = scroll
-
-local tracksLayout = Instance.new("UIListLayout")
-tracksLayout.Padding = UDim.new(0, 6)
-tracksLayout.SortOrder = Enum.SortOrder.LayoutOrder
-tracksLayout.Parent = tracksContainer
-
--- Functions
-local function playTrack(name, assetId)
-    local id = tostring(assetId)
-    if not string.match(id, "rbxassetid://") then
-        id = "rbxassetid://" .. id
-    end
-    
-    broadcastSound.SoundId = id
-    broadcastSound:Play()
-    
-    trackTitle.Text = name
-    trackStatus.Text = "Broadcasting to server..."
-end
-
-local function renderTracksList()
+local function renderLibrary()
     for _, child in ipairs(tracksContainer:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
+        if child:IsA("Frame") then child:Destroy() end
     end
     
-    for _, track in ipairs(savedTracks) do
-        local trackBtn = Instance.new("TextButton")
-        trackBtn.Size = UDim2.new(1, 0, 0, 42)
-        trackBtn.BackgroundColor3 = theme.Surface
-        trackBtn.TextColor3 = theme.TextWhite
-        trackBtn.Text = "   ▶  " .. track.name
-        trackBtn.Font = Enum.Font.GothamBold
-        trackBtn.TextSize = 13
-        trackBtn.TextXAlignment = Enum.TextXAlignment.Left
-        addCorner(trackBtn, 8)
+    for i, track in ipairs(savedTracks) do
+        local trackFrame = Instance.new("Frame")
+        trackFrame.Size = UDim2.new(1, 0, 0, 45)
+        trackFrame.BackgroundColor3 = theme.Surface
+        applyCorner(trackFrame, 6)
         
-        trackBtn.MouseEnter:Connect(function()
-            trackBtn.BackgroundColor3 = theme.Highlight
-        end)
-        trackBtn.MouseLeave:Connect(function()
-            trackBtn.BackgroundColor3 = theme.Surface
-        end)
+        local playBtn = Instance.new("TextButton")
+        playBtn.Size = UDim2.new(1, -40, 1, 0)
+        playBtn.BackgroundTransparency = 1
+        playBtn.Text = "  " .. track.name
+        playBtn.TextColor3 = theme.Text
+        playBtn.Font = Enum.Font.GothamMedium
+        playBtn.TextSize = 13
+        playBtn.TextXAlignment = Enum.TextXAlignment.Left
+        playBtn.Parent = trackFrame
         
-        trackBtn.MouseButton1Click:Connect(function()
+        local deleteBtn = Instance.new("TextButton")
+        deleteBtn.Size = UDim2.new(0, 30, 0, 30)
+        deleteBtn.Position = UDim2.new(1, -38, 0, 7.5)
+        deleteBtn.BackgroundColor3 = theme.Background
+        deleteBtn.Text = "🗑"
+        deleteBtn.TextColor3 = theme.TextMuted
+        deleteBtn.Font = Enum.Font.Gotham
+        deleteBtn.TextSize = 12
+        applyCorner(deleteBtn, 6)
+        deleteBtn.Parent = trackFrame
+        
+        -- Hover Effects
+        trackFrame.MouseEnter:Connect(function() createTween(trackFrame, {BackgroundColor3 = theme.SurfaceLight}):Play() end)
+        trackFrame.MouseLeave:Connect(function() createTween(trackFrame, {BackgroundColor3 = theme.Surface}):Play() end)
+        
+        deleteBtn.MouseEnter:Connect(function() createTween(deleteBtn, {BackgroundColor3 = theme.Danger, TextColor3 = theme.Text}):Play() end)
+        deleteBtn.MouseLeave:Connect(function() createTween(deleteBtn, {BackgroundColor3 = theme.Background, TextColor3 = theme.TextMuted}):Play() end)
+        
+        playBtn.MouseButton1Click:Connect(function()
             playTrack(track.name, track.id)
         end)
         
-        trackBtn.Parent = tracksContainer
+        deleteBtn.MouseButton1Click:Connect(function()
+            table.remove(savedTracks, i)
+            saveTracksToFile()
+            renderLibrary()
+        end)
+        
+        trackFrame.Parent = tracksContainer
     end
 end
 
 saveBtn.MouseButton1Click:Connect(function()
-    local nameText = nameInput.Text
-    local idText = idInput.Text
-    
-    if nameText ~= "" and idText ~= "" then
-        table.insert(savedTracks, {name = nameText, id = idText})
+    local tName = nameInput.Text
+    local tId = idInput.Text
+    if tName ~= "" and tId ~= "" then
+        table.insert(savedTracks, {name = tName, id = tId})
         nameInput.Text = ""
         idInput.Text = ""
-        renderTracksList()
+        saveTracksToFile()
+        renderLibrary()
     end
 end)
 
--- Initial Render
-renderTracksList()
+renderLibrary()
