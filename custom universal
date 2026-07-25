@@ -1,5 +1,5 @@
--- Custom Universal Script V3
--- Native Roblox ScreenGui | Optimized for Chromebook/Mobile Executors
+-- Custom Universal Master Toolkit (All Features Included)
+-- Native Roblox ScreenGui | Optimized for Delta Executor
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -7,15 +7,16 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
 
 -- Destroy existing UI if re-executed
-if CoreGui:FindFirstChild("CustomUniversalGui") then
-    CoreGui.CustomUniversalGui:Destroy()
+if CoreGui:FindFirstChild("CustomUniversalMaster") then
+    CoreGui.CustomUniversalMaster:Destroy()
 end
 
 -- ScreenGui Setup
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CustomUniversalGui"
+ScreenGui.Name = "CustomUniversalMaster"
 ScreenGui.ResetOnSpawn = false
 
 local success, _ = pcall(function()
@@ -24,6 +25,29 @@ end)
 if not success then
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
+
+-- Theme Palettes
+local themes = {
+    Dark = {
+        Main = Color3.fromRGB(22, 22, 28),
+        TopBar = Color3.fromRGB(30, 30, 38),
+        Button = Color3.fromRGB(38, 38, 48),
+        Text = Color3.fromRGB(240, 240, 245)
+    },
+    Neon = {
+        Main = Color3.fromRGB(15, 15, 20),
+        TopBar = Color3.fromRGB(25, 20, 35),
+        Button = Color3.fromRGB(45, 25, 65),
+        Text = Color3.fromRGB(255, 100, 255)
+    },
+    Light = {
+        Main = Color3.fromRGB(245, 245, 250),
+        TopBar = Color3.fromRGB(220, 220, 230),
+        Button = Color3.fromRGB(205, 205, 215),
+        Text = Color3.fromRGB(30, 30, 35)
+    }
+}
+local currentTheme = themes.Dark
 
 -- Corner Helper
 local function addCorner(parent, radius)
@@ -35,9 +59,9 @@ end
 -- Main Window Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 360, 0, 420)
-mainFrame.Position = UDim2.new(0.5, -180, 0.5, -210)
-mainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+mainFrame.Size = UDim2.new(0, 360, 0, 440)
+mainFrame.Position = UDim2.new(0.5, -180, 0.5, -220)
+mainFrame.BackgroundColor3 = currentTheme.Main
 mainFrame.BorderSizePixel = 0
 addCorner(mainFrame, 10)
 mainFrame.Parent = ScreenGui
@@ -46,7 +70,7 @@ mainFrame.Parent = ScreenGui
 local topBar = Instance.new("Frame")
 topBar.Name = "TopBar"
 topBar.Size = UDim2.new(1, 0, 0, 40)
-topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+topBar.BackgroundColor3 = currentTheme.TopBar
 topBar.BorderSizePixel = 0
 addCorner(topBar, 10)
 topBar.Parent = mainFrame
@@ -54,7 +78,7 @@ topBar.Parent = mainFrame
 local topBarFill = Instance.new("Frame")
 topBarFill.Size = UDim2.new(1, 0, 0, 10)
 topBarFill.Position = UDim2.new(0, 0, 1, -10)
-topBarFill.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+topBarFill.BackgroundColor3 = currentTheme.TopBar
 topBarFill.BorderSizePixel = 0
 topBarFill.Parent = topBar
 
@@ -63,8 +87,8 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -50, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Custom Universal V3"
-titleLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+titleLabel.Text = "Custom Universal Master"
+titleLabel.TextColor3 = currentTheme.Text
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextSize = 18
@@ -74,8 +98,8 @@ titleLabel.Parent = topBar
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 28, 0, 28)
 closeBtn.Position = UDim2.new(1, -34, 0, 6)
-closeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+closeBtn.BackgroundColor3 = currentTheme.Button
+closeBtn.TextColor3 = currentTheme.Text
 closeBtn.Text = "-"
 closeBtn.Font = Enum.Font.SourceSansBold
 closeBtn.TextSize = 18
@@ -87,9 +111,9 @@ local toggleGuiBtn = Instance.new("TextButton")
 toggleGuiBtn.Name = "ToggleMenuButton"
 toggleGuiBtn.Size = UDim2.new(0, 140, 0, 32)
 toggleGuiBtn.Position = UDim2.new(0, 15, 0, 15)
-toggleGuiBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-toggleGuiBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-toggleGuiBtn.Text = "Toggle Universal"
+toggleGuiBtn.BackgroundColor3 = currentTheme.TopBar
+toggleGuiBtn.TextColor3 = currentTheme.Text
+toggleGuiBtn.Text = "Toggle Toolkit"
 toggleGuiBtn.Font = Enum.Font.SourceSansBold
 toggleGuiBtn.TextSize = 14
 addCorner(toggleGuiBtn, 6)
@@ -137,8 +161,8 @@ scroll.Size = UDim2.new(1, -20, 1, -55)
 scroll.Position = UDim2.new(0, 10, 0, 48)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 5
-scroll.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 85)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 800) -- Increased to fit Fling
+scroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 950)
 scroll.Parent = mainFrame
 
 local list = Instance.new("UIListLayout")
@@ -146,7 +170,34 @@ list.Padding = UDim.new(0, 8)
 list.SortOrder = Enum.SortOrder.LayoutOrder
 list.Parent = scroll
 
--- Row Creation Helper
+-- Toast Notification System
+local function sendNotification(message)
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(0, 260, 0, 40)
+    notif.Position = UDim2.new(1, 10, 0.85, 0)
+    notif.BackgroundColor3 = currentTheme.TopBar
+    notif.BorderSizePixel = 0
+    addCorner(notif, 8)
+    notif.Parent = ScreenGui
+    
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.Text = message
+    text.TextColor3 = currentTheme.Text
+    text.Font = Enum.Font.SourceSansBold
+    text.TextSize = 14
+    text.Parent = notif
+    
+    notif:TweenPosition(UDim2.new(1, -275, 0.85, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.3, true)
+    task.delay(2.5, function()
+        notif:TweenPosition(UDim2.new(1, 10, 0.85, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.3, true, function()
+            notif:Destroy()
+        end)
+    end)
+end
+
+-- Helper Functions
 local function createInputRow(placeholder, btnText, callback)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, -8, 0, 36)
@@ -168,8 +219,8 @@ local function createInputRow(placeholder, btnText, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.35, -4, 1, 0)
     btn.Position = UDim2.new(0.65, 4, 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(48, 48, 62)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = currentTheme.Button
+    btn.TextColor3 = currentTheme.Text
     btn.Text = btnText
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 14
@@ -184,12 +235,11 @@ local function createInputRow(placeholder, btnText, callback)
     return row
 end
 
--- Toggle Creation Helper
 local function createToggle(text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -8, 0, 36)
-    btn.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-    btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    btn.BackgroundColor3 = currentTheme.Button
+    btn.TextColor3 = currentTheme.Text
     btn.Text = text .. ": OFF"
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 14
@@ -199,7 +249,7 @@ local function createToggle(text, callback)
     btn.MouseButton1Click:Connect(function()
         state = not state
         btn.Text = text .. ": " .. (state and "ON" or "OFF")
-        btn.BackgroundColor3 = state and Color3.fromRGB(35, 130, 70) or Color3.fromRGB(38, 38, 48)
+        btn.BackgroundColor3 = state and Color3.fromRGB(35, 130, 70) or currentTheme.Button
         callback(state)
     end)
     
@@ -208,106 +258,111 @@ local function createToggle(text, callback)
 end
 
 ---------------------------------------------------------
--- FEATURES
+-- ALL FEATURES (Core + Fun/Showcase)
 ---------------------------------------------------------
 
--- Touch Fling
-local flinging = false
-local flingBav = nil
-createToggle("Touch Fling (Run into players)", function(state)
-    flinging = state
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+-- 1. Performance Widget (FPS & Ping)
+local perfFrame = Instance.new("Frame")
+perfFrame.Size = UDim2.new(1, -8, 0, 45)
+perfFrame.BackgroundColor3 = currentTheme.Button
+addCorner(perfFrame, 6)
+perfFrame.Parent = scroll
+
+local perfLabel = Instance.new("TextLabel")
+perfLabel.Size = UDim2.new(1, 0, 1, 0)
+perfLabel.BackgroundTransparency = 1
+perfLabel.TextColor3 = currentTheme.Text
+perfLabel.Font = Enum.Font.SourceSansBold
+perfLabel.TextSize = 14
+perfLabel.Text = "FPS: Calculating... | Ping: Calculating..."
+perfLabel.Parent = perfFrame
+
+RunService.RenderStepped:Connect(function()
+    local fps = math.round(1 / RunService.RenderStepped:Wait())
+    local ping = math.round(LocalPlayer:GetNetworkPing() * 1000)
+    perfLabel.Text = string.format("FPS: %d | Ping: %dms", fps, ping)
+end)
+
+-- 2. Theme Switcher
+local themeBtn = Instance.new("TextButton")
+themeBtn.Size = UDim2.new(1, -8, 0, 36)
+themeBtn.BackgroundColor3 = currentTheme.Button
+themeBtn.TextColor3 = currentTheme.Text
+themeBtn.Text = "Theme: Dark Mode"
+themeBtn.Font = Enum.Font.SourceSansBold
+themeBtn.TextSize = 14
+addCorner(themeBtn, 6)
+
+local themeIndex = 1
+local themeNames = {"Dark", "Neon", "Light"}
+themeBtn.MouseButton1Click:Connect(function()
+    themeIndex = themeIndex % #themeNames + 1
+    local name = themeNames[themeIndex]
+    currentTheme = themes[name]
     
-    if flinging then
-        flingBav = Instance.new("BodyAngularVelocity")
-        flingBav.Name = "TouchFling"
-        flingBav.AngularVelocity = Vector3.new(0, 99999, 0)
-        flingBav.MaxTorque = Vector3.new(0, math.huge, 0)
-        flingBav.P = math.huge
-        flingBav.Parent = char.HumanoidRootPart
-    else
-        if flingBav then flingBav:Destroy() end
-        local existingFling = char.HumanoidRootPart:FindFirstChild("TouchFling")
-        if existingFling then existingFling:Destroy() end
+    themeBtn.Text = "Theme: " .. name .. " Mode"
+    mainFrame.BackgroundColor3 = currentTheme.Main
+    topBar.BackgroundColor3 = currentTheme.TopBar
+    topBarFill.BackgroundColor3 = currentTheme.TopBar
+    titleLabel.TextColor3 = currentTheme.Text
+    closeBtn.BackgroundColor3 = currentTheme.Button
+    closeBtn.TextColor3 = currentTheme.Text
+    toggleGuiBtn.BackgroundColor3 = currentTheme.TopBar
+    toggleGuiBtn.TextColor3 = currentTheme.Text
+    perfFrame.BackgroundColor3 = currentTheme.Button
+    perfLabel.TextColor3 = currentTheme.Text
+    themeBtn.BackgroundColor3 = currentTheme.Button
+    themeBtn.TextColor3 = currentTheme.Text
+    
+    sendNotification("Switched theme to " .. name)
+end)
+themeBtn.Parent = scroll
+
+-- 3. Rainbow UI Mode Toggle
+local rainbowActive = false
+local rainbowBtn = Instance.new("TextButton")
+rainbowBtn.Size = UDim2.new(1, -8, 0, 36)
+rainbowBtn.BackgroundColor3 = currentTheme.Button
+rainbowBtn.TextColor3 = currentTheme.Text
+rainbowBtn.Text = "Rainbow UI: OFF"
+rainbowBtn.Font = Enum.Font.SourceSansBold
+rainbowBtn.TextSize = 14
+addCorner(rainbowBtn, 6)
+
+rainbowBtn.MouseButton1Click:Connect(function()
+    rainbowActive = not rainbowActive
+    rainbowBtn.Text = "Rainbow UI: " .. (rainbowActive and "ON" or "OFF")
+    sendNotification("Rainbow UI toggled " .. (rainbowActive and "ON" or "OFF"))
+end)
+rainbowBtn.Parent = scroll
+
+RunService.RenderStepped:Connect(function()
+    if rainbowActive then
+        local rainbowColor = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+        titleLabel.TextColor3 = rainbowColor
     end
 end)
 
--- ESP Highlights
-local espEnabled = false
-local espHighlights = {}
-
-createToggle("Player ESP (Wallhack)", function(state)
-    espEnabled = state
-    if not espEnabled then
-        for _, hl in pairs(espHighlights) do
-            if hl then hl:Destroy() end
-        end
-        espHighlights = {}
-    end
-end)
-
-task.spawn(function()
-    while task.wait(1) do
-        if espEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    if not espHighlights[player] or not espHighlights[player].Parent then
-                        local hl = Instance.new("Highlight")
-                        hl.FillColor = Color3.fromRGB(255, 0, 0)
-                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        hl.FillTransparency = 0.5
-                        hl.Parent = player.Character
-                        espHighlights[player] = hl
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Noclip
-local noclip = false
-createToggle("Noclip (Walk Through Walls)", function(state)
-    noclip = state
-end)
-
-RunService.Stepped:Connect(function()
-    if noclip and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
--- Camera FOV Modifier
-createInputRow("Set FOV (Default 70, Max 120)", "Apply FOV", function(val)
-    local num = tonumber(val)
-    if num then
-        workspace.CurrentCamera.FieldOfView = math.clamp(num, 10, 120)
-    end
-end)
-
--- WalkSpeed
+-- 4. WalkSpeed
 createInputRow("WalkSpeed (e.g. 50)", "Set Speed", function(val)
     local num = tonumber(val)
     if num and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.WalkSpeed = num
+        sendNotification("WalkSpeed set to " .. num)
     end
 end)
 
--- JumpPower
+-- 5. JumpPower
 createInputRow("JumpPower (e.g. 100)", "Set Jump", function(val)
     local num = tonumber(val)
     if num and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.UseJumpPower = true
         LocalPlayer.Character.Humanoid.JumpPower = num
+        sendNotification("JumpPower set to " .. num)
     end
 end)
 
--- Infinite Jump
+-- 6. Infinite Jump
 local infJump = false
 createToggle("Infinite Jump", function(state)
     infJump = state
@@ -319,7 +374,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Fly
+-- 7. Fly
 local flying = false
 local flySpeed = 50
 local flyBv, flyBg
@@ -356,22 +411,22 @@ createToggle("Fly", function(state)
     end
 end)
 
--- Freeze Myself
-createToggle("Freeze Myself (Server Sided)", function(state)
+-- 8. Freeze Myself
+createToggle("Freeze Myself", function(state)
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         char.HumanoidRootPart.Anchored = state
     end
 end)
 
--- Spinbot
+-- 9. Spinbot
 local spinning = false
 local spinSpeed = 50
 createToggle("Spinbot", function(state)
     spinning = state
 end)
 
--- Auto Clicker
+-- 10. Auto Clicker
 local autoClicking = false
 createToggle("Auto Clicker", function(state)
     autoClicking = state
@@ -389,7 +444,124 @@ createToggle("Auto Clicker", function(state)
     end
 end)
 
--- Play Animation
+-- 11. Waypoint Teleporter
+local savedWaypoint = nil
+local waypointFrame = Instance.new("Frame")
+waypointFrame.Size = UDim2.new(1, -8, 0, 36)
+waypointFrame.BackgroundTransparency = 1
+
+local setWpBtn = Instance.new("TextButton")
+setWpBtn.Size = UDim2.new(0.48, 0, 1, 0)
+setWpBtn.BackgroundColor3 = currentTheme.Button
+setWpBtn.TextColor3 = currentTheme.Text
+setWpBtn.Text = "Save Waypoint"
+setWpBtn.Font = Enum.Font.SourceSansBold
+setWpBtn.TextSize = 13
+addCorner(setWpBtn, 6)
+setWpBtn.Parent = waypointFrame
+
+setWpBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedWaypoint = char.HumanoidRootPart.CFrame
+        sendNotification("Waypoint Saved!")
+    end
+end)
+
+local tpWpBtn = Instance.new("TextButton")
+tpWpBtn.Size = UDim2.new(0.48, 0, 1, 0)
+tpWpBtn.Position = UDim2.new(0.52, 0, 0, 0)
+tpWpBtn.BackgroundColor3 = currentTheme.Button
+tpWpBtn.TextColor3 = currentTheme.Text
+tpWpBtn.Text = "Teleport to Waypoint"
+tpWpBtn.Font = Enum.Font.SourceSansBold
+tpWpBtn.TextSize = 13
+addCorner(tpWpBtn, 6)
+tpWpBtn.Parent = waypointFrame
+
+tpWpBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if savedWaypoint and char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = savedWaypoint
+        sendNotification("Teleported to Waypoint!")
+    else
+        sendNotification("No Waypoint Saved Yet!")
+    end
+end)
+waypointFrame.Parent = scroll
+
+-- 12. Client-Side Time Changer (Day / Night)
+local timeFrame = Instance.new("Frame")
+timeFrame.Size = UDim2.new(1, -8, 0, 36)
+timeFrame.BackgroundTransparency = 1
+
+local dayBtn = Instance.new("TextButton")
+dayBtn.Size = UDim2.new(0.48, 0, 1, 0)
+dayBtn.BackgroundColor3 = currentTheme.Button
+dayBtn.TextColor3 = currentTheme.Text
+dayBtn.Text = "Set Day (14:00)"
+dayBtn.Font = Enum.Font.SourceSansBold
+dayBtn.TextSize = 13
+addCorner(dayBtn, 6)
+dayBtn.Parent = timeFrame
+
+dayBtn.MouseButton1Click:Connect(function()
+    Lighting.ClockTime = 14
+    sendNotification("Environment set to Day")
+end)
+
+local nightBtn = Instance.new("TextButton")
+nightBtn.Size = UDim2.new(0.48, 0, 1, 0)
+nightBtn.Position = UDim2.new(0.52, 0, 0, 0)
+nightBtn.BackgroundColor3 = currentTheme.Button
+nightBtn.TextColor3 = currentTheme.Text
+nightBtn.Text = "Set Night (00:00)"
+nightBtn.Font = Enum.Font.SourceSansBold
+nightBtn.TextSize = 13
+addCorner(nightBtn, 6)
+nightBtn.Parent = timeFrame
+
+nightBtn.MouseButton1Click:Connect(function()
+    Lighting.ClockTime = 0
+    sendNotification("Environment set to Night")
+end)
+timeFrame.Parent = scroll
+
+-- 13. Character Sparkle Trail Toggle
+local sparkleEmitter = nil
+local sparkleBtn = Instance.new("TextButton")
+sparkleBtn.Size = UDim2.new(1, -8, 0, 36)
+sparkleBtn.BackgroundColor3 = currentTheme.Button
+sparkleBtn.TextColor3 = currentTheme.Text
+sparkleBtn.Text = "Sparkle Trail: OFF"
+sparkleBtn.Font = Enum.Font.SourceSansBold
+sparkleBtn.TextSize = 14
+addCorner(sparkleBtn, 6)
+
+sparkleBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    if not sparkleEmitter then
+        sparkleEmitter = Instance.new("ParticleEmitter")
+        sparkleEmitter.Name = "ShowcaseSparkles"
+        sparkleEmitter.Texture = "rbxassetid://258124063"
+        sparkleEmitter.Rate = 25
+        sparkleEmitter.Speed = NumberRange.new(1, 3)
+        sparkleEmitter.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0)})
+        sparkleEmitter.Parent = char.HumanoidRootPart
+        sparkleBtn.Text = "Sparkle Trail: ON"
+        sendNotification("Sparkle Trail Enabled")
+    else
+        sparkleEmitter:Destroy()
+        sparkleEmitter = nil
+        sparkleBtn.Text = "Sparkle Trail: OFF"
+        sendNotification("Sparkle Trail Disabled")
+    end
+end)
+sparkleBtn.Parent = scroll
+
+-- 14. Play Animation
 createInputRow("Animation ID", "Play Anim", function(val)
     if val ~= "" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         local id = val
@@ -398,10 +570,11 @@ createInputRow("Animation ID", "Play Anim", function(val)
         anim.AnimationId = id
         local track = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
         track:Play()
+        sendNotification("Playing Animation")
     end
 end)
 
--- Play Song
+-- 15. Play Song
 createInputRow("Song Asset ID", "Play Song", function(val)
     if val ~= "" then
         local id = val
@@ -411,11 +584,12 @@ createInputRow("Song Asset ID", "Play Song", function(val)
         sound.Parent = workspace
         sound.Volume = 1
         sound:Play()
+        sendNotification("Playing Sound")
     end
 end)
 
 ---------------------------------------------------------
--- RENDER LOOP (Handles Fly & Spinbot)
+-- RENDER LOOP
 ---------------------------------------------------------
 RunService.RenderStepped:Connect(function()
     if flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and flyBv and flyBg then
